@@ -23,7 +23,6 @@ by default it will create the cluster or add new hosts to the cluster
  - role turn **all** unused blockdevices into OSDs (if host is in group ceph_osd_hosts)  
  - all defined mon hosts get a mgr  
  - default pg/pgp size for pools is 128  
-  
  - for each client role creates a rbd-device in pool images with name: <hostname>  
  - rbd-device will get ext4 fs and mounted on `/mnt/rbd` (not reboot persistent)  
 
