@@ -2,11 +2,15 @@
 ansible roles for ceph
 
 
-you'll find role descriptions in role folder  
+you'll find role descriptions in role folder README.md  
 
 ---
 
-#### hosts
+#### buildup ceph cluster
 define your hosts like described in `inventory/hosts`  
+
+start buildup  
+
+    ansible-playbook ceph.yml
 
 ---
