@@ -52,9 +52,3 @@ by default it will create the cluster or add new hosts to the cluster
 `ceph_pools:` pools to create  
 
 ---
-
-### demo cluster  
-
-![pic](../../images/ceph_status_demo.jpg)  
-
----
