@@ -1,23 +1,19 @@
-### ceph buildup and remove role
+## ceph buildup and remove role
 
-#### default vars
+---
 
-__ceph_release:__ choose your ceph release  
+### default vars
 
-__ceph_first_mon:__ define hostname of your first ceph mon to start buildup cluster  
-
-__ceph_mons:__ define ceph mons  
-
-__ceph_osd_format:__ bluestore or filestore  
+`ceph_release:` choose your ceph release  
+`ceph_first_mon:` define hostname of your first ceph mon to start buildup cluster  
+`ceph_mons:` define ceph mons  
+`ceph_osd_format:` bluestore or filestore  
 
 ***Hint:*** bluestore won't work with arch linux  
 
-__ceph_public_net:__ client network  
-__ceph_cluster_net:__ replication network  
-
-__ceph_remove_cluster:__ set to True to remove cluster (extra-var yes_i_really_really_mean_it has to be True as well to remove cluster! )  
-__ceph_buildup_cluster:__ to create cluster + add new hosts  
-
-__ceph_mgr_modules:__ mgr modules should be enabled on `ceph_first_mon`  
-
-__ceph_pools:__ pools to create
+`ceph_public_net:` client network  
+`ceph_cluster_net:` replication network  
+`ceph_remove_cluster:` set to True to remove cluster (extra-var yes_i_really_really_mean_it has to be True as well to remove cluster! )  
+`ceph_buildup_cluster:` to create cluster + add new hosts  
+`ceph_mgr_modules:` mgr modules should be enabled on `ceph_first_mon`  
+`ceph_pools:` pools to create  
