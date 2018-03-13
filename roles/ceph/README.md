@@ -18,6 +18,6 @@ __ceph_cluster_net:__ replication network
 __ceph_remove_cluster:__ set to True to remove cluster (extra-var yes_i_really_really_mean_it has to be True as well to remove cluster! )  
 __ceph_buildup_cluster:__ to create cluster + add new hosts  
 
-__ceph_mgr_modules:__ mgr modules should be enabled on 'ceph_first_mon'  
+__ceph_mgr_modules:__ mgr modules should be enabled on `ceph_first_mon`  
 
 __ceph_pools:__ pools to create
