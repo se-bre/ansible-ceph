@@ -50,3 +50,11 @@ by default it will create the cluster or add new hosts to the cluster
 `ceph_buildup_cluster:` to create cluster + add new hosts  
 `ceph_mgr_modules:` mgr modules should be enabled on `ceph_first_mon`  
 `ceph_pools:` pools to create  
+
+---
+
+### demo cluster  
+
+![pic](images/ceph_status_demo.jpg)  
+
+---
