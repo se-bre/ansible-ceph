@@ -14,21 +14,20 @@
 this role will create or remove a ceph cluster  
 
 by default it will create the cluster or add new hosts to the cluster  
+
 **Hint:**  
  - to add new OSD Hosts to your cluster limit the role to run only on this host  
  - if you use filestore you can safely run it over already configured hosts!  
 
 **buildup:**  
-
  - role turn **all** unused blockdevices into OSDs (if host is in group ceph_osd_hosts)  
- - all defined mon hosts get a mgr
+ - all defined mon hosts get a mgr  
  - default pg/pgp size for pools is 128  
-
+  
  - for each client role creates a rbd-device in pool images with name: <hostname>  
  - rbd-device will get ext4 fs and mounted on `/mnt/rbd` (not reboot persistent)  
-  
- **remove cluster:**
 
+ **remove cluster:**
   - role will destroy complete cluster!  
   - all OSDs will be destroyed  
   - all RBD devices will be unmounted on clients  
