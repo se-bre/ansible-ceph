@@ -1,0 +1,34 @@
+- name: stop services mgr mon
+  systemd:
+    name: "{{ item }}.target"
+    state: stopped
+    enabled: False
+  with_items:
+    - ceph-mon
+    - ceph-mgr
+  ignore_errors: True
+
+- name: remove mgr mon files
+  file:
+    path: "/var/lib/ceph/{{ item }}/ceph-{{ ansible_hostname }}"
+    state: absent
+  with_items:
+    - mon
+    - mgr
+
+- name: remove other keyrings
+  file:
+    path: "/var/lib/ceph/{{ item }}/ceph.keyring"
+    state: absent
+  with_items:
+    - bootstrap-mds
+    - bootstrap-osd
+    - bootstrap-rgw
+
+- name: remove temp files
+  file:
+    path: "/tmp/{{ item }}"
+    state: absent
+  with_items:
+    - ceph.mon.keyring
+    - monmap

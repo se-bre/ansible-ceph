@@ -1,0 +1,4 @@
+[global]
+fsid = {{ ceph_fsid }}
+mon initial members = {% for host in groups['ceph_mons'] %}{{ hostvars[host]['ansible_hostname'] }}{% endfor %}
+mon host = {% for host in groups['ceph_mons'] %}{{ hostvars[host]['ansible_default_ipv4']['address'] }}{% endfor %}

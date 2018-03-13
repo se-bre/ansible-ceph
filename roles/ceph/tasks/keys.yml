@@ -1,0 +1,76 @@
+- name: check mon keyring
+  stat:
+    path: "/var/lib/ceph/mon/ceph-{{ ansible_hostname }}/keyring"
+  register: ceph_mon_keyring
+
+- name: create mon keyring
+  when: not ceph_mon_keyring.stat.exists
+  shell: ceph-authtool --create-keyring /tmp/ceph.mon.keyring --gen-key -n mon. --cap mon 'allow *'
+  args:
+    executable: /bin/bash
+  become: yes
+  become_user: ceph
+  become_method: su
+
+- name: check config folder owner
+  file:
+    path: /etc/ceph
+    owner: ceph
+    group: ceph
+    mode: 0770
+    state: directory
+
+- name: check admin keyring
+  stat:
+    path: "/etc/ceph/ceph.client.admin.keyring"
+  register: ceph_admin_keyring
+
+- block:
+    - name: create admin key
+      shell: ceph-authtool --create-keyring /etc/ceph/ceph.client.admin.keyring --gen-key -n client.admin --set-uid=0 --cap mon 'allow *' --cap osd 'allow *' --cap mds 'allow *' --cap mgr 'allow *'
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: ceph
+      become_method: su
+    
+    - name: import admin key to mon keyring
+      shell: ceph-authtool /tmp/ceph.mon.keyring --import-keyring /etc/ceph/ceph.client.admin.keyring
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: ceph
+      become_method: su
+  when: not ceph_admin_keyring.stat.exists
+
+- name: check client keyring
+  stat:
+    path: "/var/lib/ceph/bootstrap-osd/ceph.keyring"
+  register: ceph_client_keyring
+
+- block:
+    - name: create client key
+      shell: ceph-authtool --create-keyring /var/lib/ceph/bootstrap-osd/ceph.keyring --gen-key -n client.bootstrap-osd --cap mon 'profile bootstrap-osd'
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: ceph
+      become_method: su
+    
+    - name: import osd key to mon keyring
+      shell: ceph-authtool /tmp/ceph.mon.keyring --import-keyring /var/lib/ceph/bootstrap-osd/ceph.keyring
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: ceph
+      become_method: su
+  when: not ceph_client_keyring.stat.exists
+
+- name: add hosts to monmap
+  shell: monmaptool --create --clobber --add {{ ansible_hostname }} {{ ansible_default_ipv4.address }} --fsid {{ ceph_fsid }} /tmp/monmap
+  args:
+    executable: /bin/bash
+  become: yes
+  become_user: ceph
+  become_method: su
+

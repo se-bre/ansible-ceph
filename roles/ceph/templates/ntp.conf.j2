@@ -1,0 +1,11 @@
+server 0.arch.pool.ntp.org iburst 
+server 1.arch.pool.ntp.org iburst
+server 2.arch.pool.ntp.org iburst
+server 3.arch.pool.ntp.org iburst
+server {{ ansible_default_ipv4.address }}
+fudge {{ ansible_default_ipv4.address }} stratum 15
+
+restrict default kod nomodify notrap nopeer
+
+driftfile /var/lib/ntp/ntp.drift
+logfile /var/log/ntp.log

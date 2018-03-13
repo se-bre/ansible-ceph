@@ -1,0 +1,5 @@
+- name: remove pvs
+  shell: pvremove /dev/{{ old_osd }}
+  args:
+    executable: /bin/bash
+  ignore_errors: True

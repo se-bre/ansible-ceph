@@ -1,0 +1,26 @@
+- name: create rbd image
+  shell: "rbd create --size 1024 images/{{ ansible_hostname }}"
+  args:
+    executable: /bin/bash
+
+- name: map rbd
+  shell: "rbd map {{ ansible_hostname }} --pool images"
+  args:
+    executable: /bin/bash
+  register: ceph_rbd_map
+
+- name: create filesystem on rbd
+  filesystem:
+    fstype: ext4
+    dev: "{{ ceph_rbd_map.stdout }}"
+
+- name: mount rbd
+  mount:
+    path: /mnt/rbd
+    src: "{{ ceph_rbd_map.stdout }}"
+    state: present
+
+- name: write content on rbd
+  shell: dd if=/dev/urandom of=/mnt/rbd/image.img bs=1M count=100
+  args:
+    executable: /bin/bash

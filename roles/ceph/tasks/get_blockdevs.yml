@@ -1,0 +1,25 @@
+- name: get all blockdevices
+  set_fact:
+    devices: "{{ devices|default([]) + [item|regex_search('sd(.*)')] }}"
+  with_items: "{{ ansible_devices }}"
+  when: item|regex_search('sd(.*)')
+
+- name: put all mounted blockdevices in list
+  set_fact: get_mounts_all="{{ ansible_mounts|map(attribute='device')|list }}"
+
+- name: get all mounted blockdevices
+  set_fact:
+    get_mounts: "{{ get_mounts|default([]) + [item | regex_replace('/dev/(.*)', '\\1') | regex_search('^sd(.*)')] }}"
+  with_items: "{{ get_mounts_all }}"
+  when: item | regex_search('sd(.*)')
+ 
+- name: get only unused blockdevices
+  set_fact: 
+    free_disks: "{{ devices | difference(get_mounts) }}"
+  when: get_mounts is defined
+     
+- name: get only unused blockdevices
+  set_fact:
+    free_disks: "{{ devices }}"
+  when: get_mounts is not defined
+

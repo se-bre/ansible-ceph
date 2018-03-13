@@ -1,0 +1,23 @@
+- name: push host IP on first mon
+  lineinfile: dest=/etc/hosts line='{{ ansible_default_ipv4.address  }} {{ ansible_hostname }}' regexp='(^|\n)(.*){{ ansible_hostname }}(.*)'
+  delegate_to: "{{ ceph_first_mon }}"
+  delegate_facts: True
+
+# Synchronization of src on delegate host to dest on the current inventory host.
+- name: sync ceph config
+  synchronize:
+    src: /etc/ceph/
+    dest: /etc/ceph/
+    recursive: True
+    archive: True
+    use_ssh_args: True
+  delegate_to: "{{ ceph_first_mon }}"
+
+- name: sync keyrings
+  when: not inventory_hostname in groups['ceph_clients']
+  synchronize:
+    src: /var/lib/ceph/bootstrap-osd/ceph.keyring
+    dest: /var/lib/ceph/bootstrap-osd/ceph.keyring
+    archive: True
+    use_ssh_args: True
+  delegate_to: "{{ ceph_first_mon }}"

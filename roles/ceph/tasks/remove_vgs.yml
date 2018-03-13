@@ -1,0 +1,18 @@
+- name: stop osd deamons
+  systemd:
+    name: ceph-osd@*
+    state: stopped
+    enabled: False
+  ignore_errors: True
+
+- name: get volume groups
+  shell: vgs | grep ceph | awk '{print $1}'
+  register: ceph_vgs
+
+- name: remove volume groups
+  lvg:
+    vg: "{{ item }}"
+    state: absent
+    force: yes
+  with_items: "{{ ceph_vgs.stdout_lines }}"
+

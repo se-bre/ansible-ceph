@@ -1,0 +1,54 @@
+- block:
+    - name: ntp conf server
+      template:
+        src: ntp.conf.j2
+        dest: /etc/ntp.conf
+    
+    - name: stop ntp
+      service:
+        name: "{{ ntp_service }}"
+        state: stopped
+
+    - name: sync time once
+      shell: ntpd -q -g -x -n
+      args:
+        executable: /bin/bash
+    
+    - name: start ntp
+      service:
+        name: "{{ ntp_service }}"
+        state: started
+        enabled: True
+  when: ansible_hostname == ceph_first_mon
+
+- name: get ntp server facts
+  setup:
+  delegate_to: "{{ ceph_first_mon }}"
+  delegate_facts: True
+
+- block:
+    - name: remove original ntp servers
+      lineinfile: dest=/etc/ntp.conf state=absent regexp='(^|\n)server\s.*'
+    
+    - name: push ntp server to client
+      lineinfile: dest=/etc/ntp.conf line="server {{ hostvars[ceph_first_mon]['ansible_default_ipv4']['address'] }} iburst"
+      args:
+        insertafter: BOF
+      delegate_facts: True
+
+    - name: stop ntp
+      service:
+        name: "{{ ntp_service }}"
+        state: stopped
+
+    - name: sync time once
+      shell: ntpd -q -g -x -n
+      args:
+        executable: /bin/bash
+  when: not ansible_hostname == ceph_first_mon
+
+- name: start ntp
+  service:
+    name: "{{ ntp_service }}"
+    state: started
+    enabled: True

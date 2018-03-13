@@ -1,0 +1,66 @@
+- name: check mgr key
+  stat:
+    path: "/var/lib/ceph/mgr/ceph-{{ ansible_hostname }}/keyring"
+  register: ceph_mgr_key
+
+- block:
+    - name: check mgr data path
+      file:
+        path: "/var/lib/ceph/mgr/ceph-{{ ansible_hostname }}"
+        state: directory
+        owner: ceph
+        group: ceph
+        mode: 0770
+
+    - name: create mgr key
+      shell: "ceph auth get-or-create mgr.{{ ansible_hostname }} mon 'allow profile mgr' osd 'allow *' mds 'allow *' -o /var/lib/ceph/mgr/ceph-{{ ansible_hostname }}/keyring"
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: ceph
+      become_method: su
+
+    - name: get mon keyring
+      shell: ceph auth get mon. -o /tmp/ceph.mon.keyring
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: ceph
+      become_method: su
+ 
+    - name: import mgr key to admin keyring
+      shell: "ceph-authtool {{ item }} --import-keyring /var/lib/ceph/mgr/ceph-{{ ansible_hostname }}/keyring"
+      args:
+        executable: /bin/bash
+      with_items:
+        - /tmp/ceph.mon.keyring
+        - /etc/ceph/ceph.client.admin.keyring
+      become: yes
+      become_user: ceph
+      become_method: su
+    
+    - name: remove mon keyring
+      file:
+        path: /tmp/ceph.mon.keyring
+        state: absent
+  when: not ceph_mgr_key.stat.exists
+
+- name: start mgr service
+  systemd:
+    name: "ceph-mgr@{{ ansible_hostname }}.service"
+    state: started
+    enabled: True
+
+- name: enable mgr service
+  systemd:
+    name: ceph-mgr.target
+    enabled: True
+
+- pause:
+    seconds: 10
+
+- name: restart ceph mgr
+  systemd:
+    name: "ceph-mgr@{{ ansible_hostname }}.service"
+    state: restarted
+

@@ -1,0 +1,7 @@
+- name: remove config folder
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /var/log/ceph
+    - /etc/ceph

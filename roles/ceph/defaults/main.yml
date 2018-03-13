@@ -1,0 +1,24 @@
+ceph_release: "luminous"
+
+ceph_first_mon: 'node1'
+ceph_client: 'localhost'
+
+ceph_mons:
+  - { name: 'node1', ip: '192.168.74.1' }
+  - { name: 'node2', ip: '192.168.74.2' }
+  - { name: 'node3', ip: '192.168.74.3' }
+
+ceph_osd_format: "bluestore"
+
+ceph_public_net: '192.168.74.0/24'
+ceph_cluster_net: '192.168.74.0/24'
+
+ceph_remove_cluster: False
+ceph_buildup_cluster: True
+
+ceph_mgr_modules:
+  - dashboard
+
+ceph_pools:
+  - images
+  - templates

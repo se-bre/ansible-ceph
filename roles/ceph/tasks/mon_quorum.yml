@@ -1,0 +1,63 @@
+- name: check if mon is already configured
+  stat:
+    path: /var/lib/ceph/mon/ceph-{{ ansible_hostname }}/done
+  register: ceph_mon_configured
+
+- block:
+    - name: create mon directorys
+      file:
+        dest: "/var/lib/ceph/mon/ceph-{{ ansible_hostname }}"
+        state: directory
+      become: yes
+      become_user: ceph
+      become_method: su
+    
+    - name: get mon keyring
+      shell: ceph auth get mon. -o /tmp/ceph.mon.keyring
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: ceph
+      become_method: su
+
+    - name: get monmap
+      shell: ceph mon getmap -o /tmp/monmap
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: ceph
+      become_method: su
+
+    - name: get monmap
+      shell: ceph-mon --mkfs -i {{ ansible_hostname }} --monmap /tmp/monmap --keyring /tmp/ceph.mon.keyring
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: ceph
+      become_method: su
+    
+    - name: remove mon keyring
+      file:
+        path: /tmp/ceph.mon.keyring
+        state: absent 
+
+    - name: create done file
+      file:
+        path: "/var/lib/ceph/mon/ceph-{{ ansible_hostname }}/done"
+        state: touch
+      become: yes
+      become_user: ceph
+      become_method: su
+  when: not ceph_mon_configured.stat.exists
+
+- name: start mon service
+  systemd:
+    name: "ceph-mon@{{ ansible_hostname }}"
+    state: started
+    enabled: True
+
+- name: start mon target
+  systemd:
+    name: "ceph-mon.target"
+    enabled: True
+

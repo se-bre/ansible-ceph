@@ -1,0 +1,12 @@
+- name: create pool
+  shell: "ceph osd pool create {{ item }} 128 128"
+  args:
+    executable: /bin/bash
+  with_items: "{{ ceph_pools }}"
+
+- name: enable rbd on pools
+  shell: ceph osd pool application enable {{ item }} rbd
+  args:
+    executable: /bin/bash
+  with_items: "{{ ceph_pools }}"
+

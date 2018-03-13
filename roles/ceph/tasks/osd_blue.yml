@@ -1,0 +1,5 @@
+- name: create osd
+  shell: "ceph-volume lvm create --data /dev/{{ free_osd }}"
+  args:
+    executable: /bin/bash
+

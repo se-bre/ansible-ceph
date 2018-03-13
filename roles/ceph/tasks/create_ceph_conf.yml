@@ -1,0 +1,28 @@
+- name: check ceph config file
+  stat: path=/etc/ceph/ceph.conf
+  register: ceph_config_file
+
+- block:
+    - name: get ceph conf
+      shell: cat /etc/ceph/ceph.conf | grep -E '^fsid\s=\s'
+      register: ceph_config
+
+    - name: check existing fsid
+      set_fact: ceph_fsid="{{ item|regex_replace('^fsid\s=\s(.*)$', '\\1') }}"
+      with_items: "{{ ceph_config.stdout }}"
+  when: ceph_config_file.stat.exists
+
+- name: generate ceph fsid
+  shell: uuidgen
+  register: ceph_fsid_gen
+  when: ceph_fsid == "" or ceph_fsid is not defined
+
+- name: set fsid
+  set_fact:
+    ceph_fsid: "{{ ceph_fsid_gen.stdout }}"
+  when: ceph_fsid_gen|changed
+
+- name: create ceph config
+  template:
+    src: ceph.conf.j2
+    dest: /etc/ceph/ceph.conf

@@ -1,0 +1,79 @@
+## install ceph
+- name: install arch packages
+  when: ansible_os_family == "Archlinux"
+  pacman:
+    name: ceph,ceph-libs,rsync,ntp,python-plyvel,python-argh,python-argparse,python-configargparse
+    state: latest
+    #update_cache: yes
+    update_cache: no
+
+- block:
+    - name: add repo key ubuntu
+      apt_key:
+        url: https://download.ceph.com/keys/release.asc
+        state: present
+    
+    - name: install apt https transport
+      apt:
+        name: apt-transport-https
+        state: present
+
+    - name: add ceph repo
+      apt_repository:
+        repo: "deb https://download.ceph.com/debian-{{ ceph_release }}/ {{ ansible_distribution_release }} main"
+        state: present
+        filename: 'ceph'
+        update_cache: True
+      register: ceph_ubu_repo
+    
+    - name: install ubuntu packages
+      when: ceph_ubu_repo|changed
+      apt:
+        name: ceph,google-perftools,libgoogle-perftools-dev,libgoogle-perftools4,libaio1,libcurl3,curl,libleveldb1v5,rsync,ntp,uuid-runtime
+        state: latest
+        force: True
+
+    - name: install ubuntu packages
+      when: not ceph_ubu_repo|changed
+      apt:
+        name: ceph,google-perftools,libgoogle-perftools-dev,libgoogle-perftools4,libaio1,libcurl3,curl,libleveldb1v5,rsync,ntp,uuid-runtime
+        state: present
+        cache_valid_time: 86400
+  when: ansible_os_family == "Debian"
+
+## check ceph config folder
+- name: check config folder
+  stat: path=/etc/ceph
+  register: ceph_config_folder
+
+- name: check log folder
+  stat: path=/var/log/ceph
+  register: ceph_log_folder
+
+- name: create config folder
+  when: not ceph_config_folder.stat.exists
+  file: path=/etc/ceph state=directory
+
+- block:
+    - name: create log folder
+      file: 
+        path: /var/log/ceph
+        state: directory
+        owner: ceph
+        group: ceph
+        mode: 0770
+    
+    - name: set access rights on log folder
+      file: 
+        path: /var/log/ceph
+        state: directory
+        mode: "{{ item }}"
+      with_items:
+        - g+s
+        - +t
+  when: not ceph_log_folder.stat.exists
+
+- name: change ceph user shell to work with ansible
+  user:
+    name: ceph
+    shell: /bin/bash

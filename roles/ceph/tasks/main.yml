@@ -1,0 +1,76 @@
+- fail: msg="host is not in ceph group"
+  when: not inventory_hostname in groups['ceph']
+
+- include_vars: "{{ ansible_distribution }}.yml"
+
+- block:
+    - fail: msg="to remove cluster set extra var yes_i_really_really_mean_it True"
+      when: not yes_i_really_really_mean_it
+    - include_tasks: rbd_image_remove.yml
+      when: inventory_hostname in groups['ceph_clients']
+    - block:
+        - include_tasks: remove_osd.yml
+          when: ceph_osd_format == "filestore"
+        - block:
+            - include_tasks: remove_vgs.yml
+            - include_tasks: get_blockdevs.yml
+            - include_tasks: remove_pvs.yml
+              with_items: "{{ free_disks }}"
+              loop_control:
+                loop_var: old_osd
+          when: ceph_osd_format == "bluestore"
+      when: inventory_hostname in groups['ceph_osd_hosts']
+    - include_tasks: remove_mon_mgr.yml
+      when: inventory_hostname in groups['ceph_mons']
+    - include_tasks: remove_conf.yml
+  when: ceph_remove_cluster
+
+- block:
+    - include_tasks: install.yml
+    - include_tasks: ntp.yml
+    - include_tasks: ssh_keys.yml
+    
+    - block:
+        - include_tasks: create_ceph_conf.yml
+        - include_tasks: keys.yml
+        
+        - include_tasks: mon.yml
+        
+        - include_tasks: mgr.yml
+      when: ansible_hostname == ceph_first_mon
+    
+    - include_tasks: ceph_conf_sync.yml
+      when: not ansible_hostname == ceph_first_mon
+    
+    - block:
+        - include_tasks: mon_quorum.yml
+        - include_tasks: mgr_quorum.yml
+      when: inventory_hostname in groups['ceph_mons'] and not ansible_hostname == ceph_first_mon
+    
+    - block:
+        - include_tasks: get_blockdevs.yml
+        - block:
+            - include_tasks: osd.yml
+              when: ceph_osd_format == "filestore" or ansible_distribution == "Archlinux"
+              with_items: "{{ free_disks }}"
+              loop_control:
+                loop_var: free_osd
+            - include_tasks: osd_blue.yml
+              when: ceph_osd_format == "bluestore" and not ansible_distribution == "Archlinux"
+              with_items: "{{ free_disks }}"
+              loop_control:
+                loop_var: free_osd
+          when: free_disks is defined
+      when: inventory_hostname in groups['ceph_osd_hosts']
+
+    - include_tasks: create_pools.yml
+      when: ansible_hostname == ceph_first_mon
+
+    - block:
+        - include_tasks: rbd_image_create.yml
+          when: ansible_userspace_bits == "64" and not ( ansible_os_family == "Archlinux" and ansible_machine == "aarch64" )
+      when: inventory_hostname in groups['ceph_clients']
+  when: ceph_buildup_cluster
+
+- debug: msg="set ceph_remove_cluster or ceph_buildup_cluster to True"
+  when: not ceph_remove_cluster and not ceph_buildup_cluster

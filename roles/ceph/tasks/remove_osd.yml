@@ -1,0 +1,28 @@
+- name: stop osd deamons
+  systemd:
+    name: ceph-osd@*
+    state: stopped
+    enabled: False
+  ignore_errors: True
+
+- pause:
+    seconds: 5
+
+- name: umount osd
+  when: item.mount|search('(.*)ceph(.*)')
+  mount:
+    path: "{{ item.mount }}"
+    state: unmounted
+  with_items: "{{ ansible_mounts }}"
+
+- name: remove osd mount
+  when: item.mount|search('(.*)ceph(.*)')
+  mount:
+    path: "{{ item.mount }}"
+    state: absent
+  with_items: "{{ ansible_mounts }}"
+
+- name: remove keyring
+  file:
+    path: /var/lib/ceph/bootstrap-osd/ceph.keyring
+    state: absent

@@ -1,0 +1,84 @@
+- name: check mgr key
+  stat:
+    path: "/var/lib/ceph/mgr/ceph-{{ ansible_hostname }}/keyring"
+  register: ceph_mgr_key
+
+- block:
+    - name: check mgr data path
+      file:
+        path: "/var/lib/ceph/mgr/ceph-{{ ansible_hostname }}"
+        state: directory
+        owner: ceph
+        group: ceph
+        mode: 0770
+
+    - name: create mgr key
+      shell: "ceph auth get-or-create mgr.{{ ansible_hostname }} mon 'allow profile mgr' osd 'allow *' mds 'allow *' -o /var/lib/ceph/mgr/ceph-{{ ansible_hostname }}/keyring"
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: ceph
+      become_method: su
+    
+    - name: import mgr key to mon keyring
+      shell: "ceph-authtool {{ item }} --import-keyring /var/lib/ceph/mgr/ceph-{{ ansible_hostname }}/keyring"
+      args:
+        executable: /bin/bash
+      with_items:
+        - "/var/lib/ceph/mon/ceph-{{ ansible_hostname }}/keyring"
+        - /etc/ceph/ceph.client.admin.keyring
+      become: yes
+      become_user: ceph
+      become_method: su
+    
+  when: not ceph_mgr_key.stat.exists
+
+- name: cephx auth for mgr in ceph.conf
+  blockinfile:
+    path: /etc/ceph/ceph.conf
+    block: |
+      [mgr]
+      ceph client required = cephx
+
+- name: start mgr service
+  systemd:
+    name: "ceph-mgr@{{ ansible_hostname }}.service"
+    state: started
+    enabled: True
+
+- name: enable mgr service
+  systemd:
+    name: ceph-mgr.target
+    enabled: True
+
+- pause:
+    seconds: 10
+
+- name: restart ceph mgr
+  systemd:
+    name: "ceph-mgr@{{ ansible_hostname }}.service"
+    state: restarted
+
+- pause:
+    seconds: 20
+
+- block:
+    - name: enable dashboard
+      shell: "ceph mgr module enable {{ item }}"
+      args:
+        executable: /bin/bash
+      with_items: "{{ ceph_mgr_modules }}"
+      notify: restart mgr
+
+    - name: set cluster wide dashboard IP
+      shell: "ceph config-key set mgr/dashboard/server_addr {{ ansible_default_ipv4.address }}"
+      args:
+        executable: /bin/bash
+      notify: restart mgr
+    
+    - name: set cluster wide dashboard Port
+      shell: ceph config-key set mgr/dashboard/server_port 8080
+      args:
+        executable: /bin/bash
+      notify: restart mgr
+  when: ansible_hostname == ceph_first_mon

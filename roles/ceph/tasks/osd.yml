@@ -1,0 +1,88 @@
+- name: generate uuid
+  shell: uuidgen
+  args:
+    executable: /bin/bash
+  register: ceph_osd_uuid
+
+- set_fact:
+    ceph_osd_uuid: "{{ ceph_osd_uuid.stdout }}"
+
+- name: create osd secret
+  shell: ceph-authtool --gen-print-key
+  args:
+    executable: /bin/bash
+  register: ceph_osd_key
+
+- set_fact:
+    ceph_osd_key: "{{ ceph_osd_key.stdout }}"
+
+- name: create osd id
+  shell: 'echo "{\"cephx_secret\": \"{{ ceph_osd_key }}\"}" | ceph osd new {{ ceph_osd_uuid }} -i - -n client.bootstrap-osd -k /var/lib/ceph/bootstrap-osd/ceph.keyring'
+  args:
+    executable: /bin/bash
+  register: ceph_osd_id
+
+- set_fact:
+    ceph_osd_id: "{{ ceph_osd_id.stdout }}"
+
+- name: create osd mountpoint
+  file:
+    path: "/var/lib/ceph/osd/ceph-{{ ceph_osd_id }}"
+    state: directory
+    owner: ceph
+    group: ceph
+    mode: 0755
+
+
+- name: create filesystem aarch64
+  when: ansible_machine == "aarch64"
+  filesystem:
+    fstype: xfs
+    dev: "/dev/{{ free_osd }}"
+    force: True
+    opts: -m crc=0,finobt=0
+
+- name: create filesystem 
+  when: not ansible_machine == "aarch64"
+  filesystem:
+    fstype: xfs
+    dev: "/dev/{{ free_osd }}"
+    force: True
+
+- name: mount fs
+  mount:
+    path: "/var/lib/ceph/osd/ceph-{{ ceph_osd_id }}"
+    src: "/dev/{{ free_osd }}"
+    fstype: xfs
+    opts: noatime
+    state: mounted
+
+- name: create keyring for osd
+  shell: ceph-authtool --create-keyring /var/lib/ceph/osd/ceph-{{ ceph_osd_id }}/keyring --name osd.{{ ceph_osd_id }} --add-key {{ ceph_osd_key }}
+  args:
+    executable: /bin/bash
+
+- name: initialise osd
+  shell: ceph-osd -i {{ ceph_osd_id }} --mkfs --osd-uuid {{ ceph_osd_uuid }}
+  args:
+    executable: /bin/bash
+
+- name: set ownership
+  file:
+    path: "/var/lib/ceph/osd/ceph-{{ ceph_osd_id }}"
+    state: directory
+    owner: ceph
+    group: ceph
+    recurse: yes
+
+- name: start osd
+  systemd:
+    name: "ceph-osd@{{ ceph_osd_id }}"
+    state: started
+    enabled: True
+
+- name: enable osd service
+  systemd:
+    name: ceph-osd.target
+    enabled: True
+

@@ -1,0 +1,40 @@
+- block:
+    - name: check root ssh-keypair
+      stat: path=/root/.ssh/id_ecdsa
+      register: ceph_first_mon_check_ssh_keypair
+    
+    - name: create new ssh-keypair for root
+      when: ceph_first_mon_check_ssh_keypair.stat.exists == False
+      user:
+        name: root
+        generate_ssh_key: yes
+        ssh_key_bits: 521
+        ssh_key_file: .ssh/id_ecdsa
+        ssh_key_type: ecdsa
+  when: ansible_hostname == ceph_first_mon
+
+- block:
+    - name: get pubkey
+      shell: cat /root/.ssh/id_ecdsa.pub
+      register: ceph_first_mon_ssh_pubkey
+      delegate_to: "{{ ceph_first_mon }}"
+
+    - set_fact:
+        ceph_sync_pub_key: "{{ ceph_first_mon_ssh_pubkey.stdout }}"
+
+    - name: check ssh folder for root
+      file: dest=/root/.ssh
+      args:
+        owner: root
+        mode: 0700
+        state: directory
+        recurse: yes
+
+    - name: push pubkey to host
+      authorized_key:
+        user: root
+        state: present
+        key: "{{ ceph_sync_pub_key }}"
+        manage_dir: True
+  when: not ansible_hostname == ceph_first_mon
+
