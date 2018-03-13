@@ -25,6 +25,7 @@ by default it will create the cluster or add new hosts to the cluster
  - default pg/pgp size for pools is 128  
  - for each client role creates a rbd-device in pool images with name: <hostname>  
  - rbd-device will get ext4 fs and mounted on `/mnt/rbd` (not reboot persistent)  
+ - your `ceph_first_mon` will be configured as ntp server for all hosts  
 
  **remove cluster:**
   - role will destroy complete cluster!  
