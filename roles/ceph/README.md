@@ -55,6 +55,6 @@ by default it will create the cluster or add new hosts to the cluster
 
 ### demo cluster  
 
-![pic](images/ceph_status_demo.jpg)  
+![pic](../../images/ceph_status_demo.jpg)  
 
 ---
